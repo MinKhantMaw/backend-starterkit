@@ -1,0 +1,206 @@
+openapi: 3.1.0
+info:
+  title: Enterprise CMS API
+  version: 1.0.0
+  description: Laravel 12 Enterprise CMS administration and public API.
+servers:
+  - url: http://localhost:8000/api/v1
+security:
+  - sanctum: []
+paths:
+  /admin/login:
+    post:
+      security: []
+      tags: [Authentication]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+        "422": { $ref: "#/components/responses/ValidationError" }
+  /admin/forgot-password:
+    post:
+      security: []
+      tags: [Authentication]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /admin/reset-password:
+    post:
+      security: []
+      tags: [Authentication]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /admin/profile:
+    get:
+      tags: [Authentication]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    put:
+      tags: [Authentication]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /admin/dashboard/overview:
+    get:
+      tags: [Dashboard]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /admin/users:
+    get:
+      tags: [Users]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Users]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/pages:
+    get:
+      tags: [Pages]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Pages]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/posts:
+    get:
+      tags: [Posts]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Posts]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema: { $ref: "#/components/schemas/PostInput" }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/categories:
+    get:
+      tags: [Categories]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Categories]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/tags:
+    get:
+      tags: [Tags]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Tags]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/media:
+    get:
+      tags: [Media]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Media]
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                disk: { type: string, enum: [public, s3] }
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/menus:
+    get:
+      tags: [Menus]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+    post:
+      tags: [Menus]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+  /admin/settings:
+    get:
+      tags: [Settings]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+    put:
+      tags: [Settings]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /admin/contact-messages:
+    get:
+      tags: [Contact Messages]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+  /admin/activity-logs:
+    get:
+      tags: [Activity Logs]
+      responses:
+        "200": { $ref: "#/components/responses/Paginated" }
+  /admin/notifications:
+    get:
+      tags: [Notifications]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /settings:
+    get:
+      security: []
+      tags: [Public]
+      responses:
+        "200": { $ref: "#/components/responses/Success" }
+  /contact-messages:
+    post:
+      security: []
+      tags: [Public]
+      responses:
+        "201": { $ref: "#/components/responses/Success" }
+components:
+  securitySchemes:
+    sanctum:
+      type: http
+      scheme: bearer
+      bearerFormat: Sanctum
+  schemas:
+    PostInput:
+      type: object
+      required: [title, body]
+      properties:
+        title: { type: string }
+        slug: { type: string }
+        body: { type: string }
+        featured_image: { type: string, format: binary }
+        status: { type: string, enum: [draft, published] }
+        category_ids: { type: array, items: { type: integer } }
+        tag_ids: { type: array, items: { type: integer } }
+    Envelope:
+      type: object
+      required: [success, message]
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        data: {}
+  responses:
+    Success:
+      description: Successful response
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Envelope" }
+    Paginated:
+      description: Paginated successful response
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Envelope" }
+    ValidationError:
+      description: Validation failed
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Envelope" }

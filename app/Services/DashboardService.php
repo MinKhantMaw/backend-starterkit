@@ -4,7 +4,11 @@ namespace App\Services;
 
 use App\Http\Resources\ContentResource;
 use App\Http\Resources\UserResource;
+use App\Models\ActivityLog;
+use App\Models\Category;
 use App\Models\Content;
+use App\Models\Page;
+use App\Models\Post;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -18,6 +22,9 @@ class DashboardService
 
         return [
             'total_users' => User::count(),
+            'total_posts' => Post::count(),
+            'total_pages' => Page::count(),
+            'total_categories' => Category::count(),
             'total_active_users' => User::where('is_active', true)->count(),
             'total_roles' => Role::count(),
             'total_permissions' => Permission::count(),
@@ -26,6 +33,7 @@ class DashboardService
             'total_draft_contents' => Content::where('status', Content::STATUS_DRAFT)->count(),
             'recent_users' => UserResource::collection($recentUsers),
             'recent_contents' => ContentResource::collection($recentContents),
+            'recent_activities' => ActivityLog::query()->with('actor')->latest()->take(10)->get(),
         ];
     }
 }

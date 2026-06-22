@@ -20,7 +20,10 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::defaults()],
             'is_active' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
+            'roles' => ['sometimes', 'array'],
+            'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
         ];
     }
 }

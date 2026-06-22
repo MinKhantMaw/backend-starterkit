@@ -22,7 +22,10 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
             'password' => ['nullable', 'confirmed', Password::defaults()],
             'is_active' => ['sometimes', 'boolean'],
+            'status' => ['sometimes', Rule::in(['active', 'inactive'])],
             'role' => ['nullable', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
+            'roles' => ['sometimes', 'array'],
+            'roles.*' => ['string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
         ];
     }
 }

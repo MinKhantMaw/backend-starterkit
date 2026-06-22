@@ -4,7 +4,10 @@ namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\ChangePasswordRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\UpdateProfileRequest;
 use App\Http\Resources\UserResource;
 use App\Services\AuthService;
 use App\Support\ApiResponse;
@@ -46,5 +49,26 @@ class AuthController extends Controller
         $this->authService->changePassword($request->user(), $request->validated('password'));
 
         return ApiResponse::success('Password changed successfully. Please log in again.');
+    }
+
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        $this->authService->sendResetLink($request->validated('email'));
+
+        return ApiResponse::success('Password reset link sent.');
+    }
+
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        $this->authService->resetPassword($request->validated());
+
+        return ApiResponse::success('Password reset successfully.');
+    }
+
+    public function updateProfile(UpdateProfileRequest $request): JsonResponse
+    {
+        $request->user()->update($request->validated());
+
+        return ApiResponse::success('Profile updated.', new UserResource($request->user()->load('roles.permissions')));
     }
 }

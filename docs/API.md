@@ -1,249 +1,125 @@
-# CMS Admin Backend API
+# Enterprise CMS API Guide
 
-Laravel 12 backend API for an admin dashboard CMS. It uses PHP 8.2+, MySQL, Laravel Sanctum Bearer tokens, and Spatie Laravel Permission.
+## Requirements
 
-## Installation
+- PHP 8.4 with `bcmath`, `gd`, `intl`, `mbstring`, `pdo_mysql`, `redis`, and `zip`
+- MySQL 8+
+- Redis 7+
+- Composer 2
+
+For S3 media storage, install the Laravel adapter:
 
 ```bash
-cd backend
+composer require league/flysystem-aws-s3-v3
+```
+
+For the required Pest runner:
+
+```bash
+composer require --dev pestphp/pest:^4.0 pestphp/pest-plugin-laravel:^4.0
+```
+
+## Local Setup
+
+```bash
 composer install
 cp .env.example .env
 php artisan key:generate
 php artisan storage:link
 php artisan migrate --seed
+php artisan queue:work
 php artisan serve
 ```
 
-Install commands used to create this project:
-
-```bash
-composer create-project laravel/laravel backend "^11.0"
-composer update
-composer require laravel/sanctum spatie/laravel-permission
-php artisan vendor:publish --provider="Laravel\Sanctum\SanctumServiceProvider"
-php artisan vendor:publish --provider="Spatie\Permission\PermissionServiceProvider"
-```
-
-Laravel 11 was initially requested, but current Laravel 11 framework packages were blocked by Composer security advisories, so the backend targets Laravel 12.62.0.
-
-## Environment
+Use Redis in production:
 
 ```env
-APP_NAME="CMS Admin API"
-APP_URL=http://localhost:8000
-FRONTEND_URLS=http://localhost:5173,http://127.0.0.1:5173
-
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=cms_admin_api
-DB_USERNAME=root
-DB_PASSWORD=
-
-FILESYSTEM_DISK=public
+CACHE_STORE=redis
+QUEUE_CONNECTION=redis
+SESSION_DRIVER=redis
+REDIS_HOST=redis
 ```
 
-Create the MySQL database before running migrations:
+Use local public media with `FILESYSTEM_DISK=public`, or configure the AWS
+variables and set `FILESYSTEM_DISK=s3`.
 
-```sql
-CREATE DATABASE cms_admin_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+## Authentication
+
+Base admin URL: `/api/v1/admin`
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/login` | Create Sanctum token |
+| POST | `/logout` | Revoke current token |
+| POST | `/forgot-password` | Email reset link |
+| POST | `/reset-password` | Reset password |
+| GET | `/profile` | Current user |
+| PUT | `/profile` | Update profile |
+| POST | `/change-password` | Change and revoke tokens |
+
+Protected endpoints require:
+
+```http
+Authorization: Bearer {token}
+Accept: application/json
 ```
 
-Default Super Admin:
+## Modules
 
-```text
-email: admin@example.com
-password: password
-```
+All CRUD resources use `GET`, `POST`, `GET /{id}`, `PUT|PATCH /{id}`, and
+`DELETE /{id}` where applicable.
 
-## Response Format
+| Prefix | Module |
+|---|---|
+| `/users` | Users, status, roles, direct permissions |
+| `/roles`, `/permissions` | Dynamic access control |
+| `/pages` | Pages, publish state, SEO |
+| `/posts` | Posts, images, categories, tags, SEO |
+| `/categories` | Hierarchical categories |
+| `/tags` | Tags |
+| `/media` | Local/S3 uploads and metadata |
+| `/menus` | Nested ordered navigation |
+| `/settings` | Typed site configuration |
+| `/contact-messages` | Inbox and read state |
+| `/activity-logs` | Actor-based audit history |
+| `/notifications` | Database notification inbox |
+| `/dashboard/overview` | Counts and recent activity |
 
-Success:
+Public endpoints:
+
+- `GET /api/v1/settings`
+- `POST /api/v1/contact-messages`
+
+## Response Contract
 
 ```json
 {
   "success": true,
-  "message": "Login successful.",
-  "data": {}
-}
-```
-
-Error:
-
-```json
-{
-  "success": false,
-  "message": "Validation failed.",
-  "errors": {
-    "email": ["The email field is required."]
-  }
-}
-```
-
-## Routes
-
-Base prefix: `/api/v1/admin`
-
-Authentication:
-
-- `POST /login`
-- `POST /logout`
-- `GET /profile`
-- `POST /change-password`
-
-Dashboard:
-
-- `GET /dashboard/overview`
-
-Users:
-
-- `GET /users?search=&status=active&role=Admin&per_page=15`
-- `POST /users`
-- `GET /users/{id}`
-- `PUT /users/{id}`
-- `DELETE /users/{id}`
-- `PATCH /users/{id}/status`
-- `PATCH /users/{id}/assign-role`
-
-Roles and permissions:
-
-- `GET /roles`
-- `POST /roles`
-- `GET /roles/{id}`
-- `PUT /roles/{id}`
-- `DELETE /roles/{id}`
-- `PATCH /roles/{id}/permissions`
-- `GET /permissions`
-
-Contents:
-
-- `GET /contents?search=&status=draft&date_from=2026-01-01&date_to=2026-12-31&per_page=15`
-- `POST /contents`
-- `GET /contents/{id}`
-- `PUT /contents/{id}`
-- `DELETE /contents/{id}`
-- `PATCH /contents/{id}/publish`
-- `PATCH /contents/{id}/unpublish`
-
-All protected routes require `Authorization: Bearer {access_token}` and `Accept: application/json`.
-
-## Example Requests
-
-Login:
-
-```json
-{
-  "email": "admin@example.com",
-  "password": "password"
-}
-```
-
-Create user:
-
-```json
-{
-  "name": "Editor User",
-  "email": "editor@example.com",
-  "password": "password",
-  "password_confirmation": "password",
-  "is_active": true,
-  "role": "Editor"
-}
-```
-
-Assign role:
-
-```json
-{
-  "role": "Admin"
-}
-```
-
-Create role:
-
-```json
-{
-  "name": "Publisher",
-  "permissions": ["content.view", "content.create", "content.update", "content.publish"]
-}
-```
-
-Create content:
-
-```json
-{
-  "title": "First Article",
-  "excerpt": "Short summary",
-  "body": "Full content body",
-  "status": "draft"
-}
-```
-
-For `featured_image`, send `multipart/form-data`. If uploading a file during update from a browser client, use `POST /contents/{id}` with `_method=PUT`.
-
-## Example Responses
-
-Login response:
-
-```json
-{
-  "success": true,
-  "message": "Login successful.",
+  "message": "Posts retrieved.",
   "data": {
-    "token_type": "Bearer",
-    "access_token": "1|token",
-    "user": {
-      "id": 1,
-      "name": "Super Admin",
-      "email": "admin@example.com",
-      "is_active": true,
-      "roles": ["Super Admin"],
-      "permissions": ["user.view", "user.create"]
+    "items": [],
+    "meta": {
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 15,
+      "total": 0
     }
   }
 }
 ```
 
-Dashboard response:
+Validation, authentication, authorization, and not-found errors use the same
+envelope with an appropriate `401`, `403`, `404`, or `422` status.
 
-```json
-{
-  "success": true,
-  "message": "Dashboard overview retrieved.",
-  "data": {
-    "total_users": 1,
-    "total_active_users": 1,
-    "total_roles": 4,
-    "total_permissions": 14,
-    "total_contents": 0,
-    "total_published_contents": 0,
-    "total_draft_contents": 0,
-    "recent_users": [],
-    "recent_contents": []
-  }
-}
+## Operations
+
+Production deployment should run:
+
+```bash
+php artisan migrate --force
+php artisan optimize
+php artisan queue:restart
 ```
 
-## Postman Collection Structure
-
-- CMS Admin API
-- Auth: Login, Profile, Change Password, Logout
-- Dashboard: Overview
-- Users: List, Create, Show, Update, Delete, Status, Assign Role
-- Roles: List, Create, Show, Update, Delete, Assign Permissions
-- Permissions: List
-- Contents: List, Create, Show, Update, Delete, Publish, Unpublish
-
-Suggested Postman variables:
-
-- `base_url`: `http://localhost:8000/api/v1/admin`
-- `token`: set from `data.access_token` after login
-
-## Vue 3 Integration Notes
-
-- Set `VITE_API_BASE_URL=http://localhost:8000/api/v1/admin`.
-- Store `data.access_token` after login and send it as `Authorization: Bearer ${token}`.
-- Use `data.user.roles` and `data.user.permissions` from login/profile for route guards and component permission checks.
-- Send `Accept: application/json` on every request so validation and auth failures return JSON.
-- For image uploads, use `FormData` and let the browser set the multipart `Content-Type`.
-- Display paginated list responses from `data.items` and pagination from `data.meta`.
+Run a dedicated queue worker for email notifications and the scheduler for
+maintenance tasks. The provided Compose stack includes both.

@@ -66,11 +66,17 @@ class User extends Authenticatable
 
     public function scopeSearch(Builder $query, ?string $search): Builder
     {
-        return $query->when($search, function (Builder $query, string $search) {
+        return $query->when($search, function (Builder $query) use ($search) {
             $query->where(function (Builder $query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhereHas('roles', fn ($query) => $query->where('name', 'like', "%{$search}%"));
             });
         });
+    }
+
+    public function getStatusAttribute(): string
+    {
+        return $this->is_active ? 'active' : 'inactive';
     }
 }

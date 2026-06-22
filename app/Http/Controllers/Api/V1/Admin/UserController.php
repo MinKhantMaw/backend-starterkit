@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\User\AssignUserRoleRequest;
 use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\SyncUserPermissionsRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UpdateUserStatusRequest;
 use App\Http\Resources\UserResource;
@@ -71,5 +72,12 @@ class UserController extends Controller
         $user = $this->userService->assignRole($user, $request->validated('role'));
 
         return ApiResponse::success('Role assigned to user.', new UserResource($user));
+    }
+
+    public function permissions(SyncUserPermissionsRequest $request, User $user): JsonResponse
+    {
+        return ApiResponse::success('Permissions assigned to user.', new UserResource(
+            $this->userService->syncPermissions($user, $request->validated('permissions'))
+        ));
     }
 }

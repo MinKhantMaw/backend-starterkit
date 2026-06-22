@@ -24,9 +24,14 @@ class UserService
     public function create(array $data): User
     {
         $role = Arr::pull($data, 'role');
+        $roles = Arr::pull($data, 'roles');
+        $this->normalizeActiveStatus($data);
+
         $user = User::create($data);
 
-        if ($role) {
+        if (! empty($roles)) {
+            $user->syncRoles(Arr::wrap($roles));
+        } elseif ($role) {
             $user->assignRole($role);
         }
 
@@ -36,18 +41,30 @@ class UserService
     public function update(User $user, array $data): User
     {
         $role = Arr::pull($data, 'role');
+        $roles = Arr::pull($data, 'roles');
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
         }
 
+        $this->normalizeActiveStatus($data);
         $user->update($data);
 
-        if ($role) {
+        if (! empty($roles)) {
+            $user->syncRoles(Arr::wrap($roles));
+        } elseif ($role) {
             $user->syncRoles([$role]);
         }
 
         return $user->load('roles.permissions');
+    }
+
+    private function normalizeActiveStatus(array &$data): void
+    {
+        if (isset($data['status'])) {
+            $data['is_active'] = $this->statusToBoolean($data['status']);
+            unset($data['status']);
+        }
     }
 
     public function delete(User $user): void
@@ -72,6 +89,13 @@ class UserService
         $user->syncRoles([$role]);
 
         return $user->load('roles.permissions');
+    }
+
+    public function syncPermissions(User $user, array $permissions): User
+    {
+        $user->syncPermissions($permissions);
+
+        return $user->load('roles.permissions', 'permissions');
     }
 
     private function preventSuperAdminMutation(User $user, string $message): void

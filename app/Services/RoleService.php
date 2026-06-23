@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Repositories\RoleRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
@@ -9,20 +10,18 @@ use Spatie\Permission\Models\Role;
 
 class RoleService
 {
+    public function __construct(private readonly RoleRepository $roles) {}
+
     public function paginate(array $filters): LengthAwarePaginator
     {
-        return Role::query()
-            ->with('permissions')
-            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15)
-            ->withQueryString();
+        return $this->roles->paginateWithFilters($filters);
     }
 
     public function create(array $data): Role
     {
         $permissions = Arr::pull($data, 'permissions', []);
-        $role = Role::create([
+        /** @var Role $role */
+        $role = $this->roles->create([
             'name' => $data['name'],
             'guard_name' => 'web',
         ]);
@@ -36,7 +35,7 @@ class RoleService
         $this->preventSuperAdminRename($role, $data['name'] ?? null);
 
         $permissions = Arr::pull($data, 'permissions', null);
-        $role->update($data);
+        $this->roles->update($role, $data);
 
         if (is_array($permissions)) {
             $role->syncPermissions($permissions);
@@ -53,7 +52,7 @@ class RoleService
             ]);
         }
 
-        $role->delete();
+        $this->roles->delete($role);
     }
 
     public function syncPermissions(Role $role, array $permissions): Role

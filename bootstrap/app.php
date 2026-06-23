@@ -1,5 +1,7 @@
 <?php
 
+use App\Helpers\ApiResponse;
+use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -26,31 +28,28 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => RoleMiddleware::class,
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
+            'active' => EnsureUserIsActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
             return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => 'Unauthenticated.', 'errors' => new stdClass], 401)
+                ? ApiResponse::error('Unauthenticated.', status: 401)
                 : null;
         });
         $exceptions->render(function (AuthorizationException $exception, Request $request) {
             return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => 'Forbidden.', 'errors' => new stdClass], 403)
+                ? ApiResponse::error('Forbidden.', status: 403)
                 : null;
         });
         $exceptions->render(function (ModelNotFoundException $exception, Request $request) {
             return $request->expectsJson()
-                ? response()->json(['success' => false, 'message' => 'Resource not found.', 'errors' => new stdClass], 404)
+                ? ApiResponse::error('Resource not found.', status: 404)
                 : null;
         });
         $exceptions->render(function (ValidationException $exception, Request $request) {
             if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed.',
-                    'errors' => $exception->errors(),
-                ], 422);
+                return ApiResponse::error('Validation failed', $exception->errors(), 422);
             }
 
             return null;

@@ -9,11 +9,14 @@ class SyncUserPermissionsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('user.update');
+        return $this->user()->can('users.edit');
     }
 
     public function rules(): array
     {
-        return ['permissions' => ['required', 'array'], 'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'web')]];
+        return [
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
+        ];
     }
 }

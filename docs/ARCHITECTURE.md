@@ -1,47 +1,34 @@
-# Enterprise CMS Architecture
+# Enterprise Starter Kit Architecture
 
-## Folder Structure
+This backend is a reusable Laravel 12 foundation, not a CMS.
 
-```text
-app/
-├── Contracts/Repositories/       # Domain persistence contracts
-├── Http/
-│   ├── Controllers/Api/V1/       # Versioned REST controllers
-│   ├── Requests/                 # Validation and request authorization
-│   └── Resources/                # Stable API response representations
-├── Models/                       # Eloquent entities and relationships
-├── Notifications/               # Database and email notifications
-├── Policies/                    # Model authorization rules
-├── Repositories/Eloquent/       # MySQL-backed repository implementations
-├── Services/                    # Application use cases and transactions
-└── Support/                     # API envelopes and shared infrastructure
-database/
-├── factories/                   # Test data builders
-├── migrations/                  # MySQL schema
-└── seeders/                     # Roles, permissions, and bootstrap admin
-docs/
-├── API.md                       # Setup and usage guide
-├── ARCHITECTURE.md              # This document
-├── DATABASE.md                  # Schema reference
-└── openapi.yaml                 # OpenAPI 3.1 contract
-```
+## Structure
 
-## Request Flow
+- `app/Modules/Auth`
+- `app/Modules/User`
+- `app/Modules/Role`
+- `app/Modules/Permission`
+- `app/Modules/Profile`
+- `app/Modules/ActivityLog`
+- `app/Modules/Notification`
+- `app/Modules/File`
+- `app/Services`
+- `app/Repositories`
+- `app/Traits`
+- `app/Helpers`
+- `app/Enums`
 
-`Route -> Sanctum -> Permission middleware -> FormRequest -> Policy -> Controller -> Service -> Repository -> Model`
+## Patterns
 
-Controllers only coordinate HTTP concerns. Services own use cases, transactions, file
-operations, and relationship synchronization. Repositories own query construction and
-persistence. Resources prevent database structure from leaking into the API contract.
-
-## API Conventions
-
-- Base URL: `/api/v1`
-- Admin URL: `/api/v1/admin`
-- Authentication: Sanctum bearer tokens
-- Pagination: `data.items` and `data.meta`
-- Errors: JSON envelope with `success`, `message`, and `errors`
-- Dates: ISO 8601 UTC
-- Deletes: soft delete for business records
-- Authorization: Spatie permissions backed by Laravel policies and gates
-
+- Feature-based module controllers.
+- Service layer for business workflows.
+- Repository layer for persistence boundaries.
+- Form Requests for validation and request authorization.
+- API Resources for response shaping.
+- Policies and middleware for authorization and account state.
+- Sanctum bearer tokens for API authentication.
+- Spatie Permission for roles and permissions.
+- Database notifications through Laravel's `Notifiable` support.
+- Reusable upload handling through `FileUploadService`.
+- Global exception rendering in `bootstrap/app.php`.
+- Queue and cache support through Laravel infrastructure migrations.

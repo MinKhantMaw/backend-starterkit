@@ -1,206 +1,337 @@
-openapi: 3.1.0
+openapi: 3.0.3
 info:
-  title: Enterprise CMS API
+  title: Laravel 12 Enterprise Backend Starter Kit API
   version: 1.0.0
-  description: Laravel 12 Enterprise CMS administration and public API.
+  description: Reusable backend foundation for enterprise systems with auth, RBAC, audit logs, notifications, and reusable uploads.
 servers:
-  - url: http://localhost:8000/api/v1
+  - url: /api/v1
 security:
-  - sanctum: []
+  - bearerAuth: []
 paths:
-  /admin/login:
+  /auth/login:
     post:
+      tags: [Auth]
       security: []
-      tags: [Authentication]
+      summary: Login and issue a Sanctum token
+      responses:
+        "200": { description: Login successful }
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke current token
+      responses:
+        "200": { description: Logout successful }
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Send password reset link
+      responses:
+        "200": { description: Reset link sent }
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      security: []
+      summary: Reset password
+      responses:
+        "200": { description: Password reset }
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change password
+      responses:
+        "200": { description: Password changed }
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Current authenticated user
+      responses:
+        "200": { description: Current user retrieved }
+  /profile:
+    get:
+      tags: [Profile]
+      summary: Show profile
+      responses:
+        "200": { description: Profile retrieved }
+    put:
+      tags: [Profile]
+      summary: Update profile
+      responses:
+        "200": { description: Profile updated }
+  /profile/change-password:
+    post:
+      tags: [Profile]
+      summary: Change password
+      responses:
+        "200": { description: Password changed }
+  /profile/avatar:
+    post:
+      tags: [Profile]
+      summary: Upload avatar
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [avatar]
+              properties:
+                avatar:
+                  type: string
+                  format: binary
+      responses:
+        "200": { description: Avatar uploaded }
+  /users:
+    get:
+      tags: [Users]
+      summary: List users
+      responses:
+        "200": { description: Users retrieved }
+    post:
+      tags: [Users]
+      summary: Create user
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              required: [email, password]
-              properties:
-                email: { type: string, format: email }
-                password: { type: string, format: password }
+              $ref: "#/components/schemas/StoreUserRequest"
       responses:
-        "200": { $ref: "#/components/responses/Success" }
-        "422": { $ref: "#/components/responses/ValidationError" }
-  /admin/forgot-password:
-    post:
-      security: []
-      tags: [Authentication]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /admin/reset-password:
-    post:
-      security: []
-      tags: [Authentication]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /admin/profile:
+        "201": { description: User created }
+  /users/{user}:
     get:
-      tags: [Authentication]
+      tags: [Users]
+      summary: Show user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
       responses:
-        "200": { $ref: "#/components/responses/Success" }
+        "200": { description: User retrieved }
     put:
-      tags: [Authentication]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /admin/dashboard/overview:
-    get:
-      tags: [Dashboard]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /admin/users:
-    get:
       tags: [Users]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-    post:
-      tags: [Users]
-      responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/pages:
-    get:
-      tags: [Pages]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-    post:
-      tags: [Pages]
-      responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/posts:
-    get:
-      tags: [Posts]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-    post:
-      tags: [Posts]
+      summary: Update user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
       requestBody:
+        required: true
         content:
-          multipart/form-data:
-            schema: { $ref: "#/components/schemas/PostInput" }
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
       responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/categories:
+        "200": { description: User updated }
+    delete:
+      tags: [Users]
+      summary: Delete user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200": { description: User deleted }
+  /users/{user}/assign-role:
+    patch:
+      tags: [Users]
+      summary: Assign role to user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200": { description: Role assigned }
+  /users/{user}/status:
+    patch:
+      tags: [Users]
+      summary: Activate or deactivate user
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200": { description: User status updated }
+  /roles:
     get:
-      tags: [Categories]
+      tags: [Roles]
+      summary: List roles
       responses:
-        "200": { $ref: "#/components/responses/Paginated" }
+        "200": { description: Roles retrieved }
     post:
-      tags: [Categories]
+      tags: [Roles]
+      summary: Create role
       responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/tags:
+        "201": { description: Role created }
+  /roles/{role}:
     get:
-      tags: [Tags]
+      tags: [Roles]
+      summary: Show role
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
       responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-    post:
-      tags: [Tags]
+        "200": { description: Role retrieved }
+    put:
+      tags: [Roles]
+      summary: Update role
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
       responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/media:
+        "200": { description: Role updated }
+    delete:
+      tags: [Roles]
+      summary: Delete role
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
+      responses:
+        "200": { description: Role deleted }
+  /roles/{role}/permissions:
+    patch:
+      tags: [Roles]
+      summary: Assign permissions to role
+      parameters:
+        - $ref: "#/components/parameters/RoleId"
+      responses:
+        "200": { description: Permissions assigned }
+  /permissions:
     get:
-      tags: [Media]
+      tags: [Permissions]
+      summary: List permissions
       responses:
-        "200": { $ref: "#/components/responses/Paginated" }
+        "200": { description: Permissions retrieved }
     post:
-      tags: [Media]
+      tags: [Permissions]
+      summary: Create permission
+      responses:
+        "201": { description: Permission created }
+  /permissions/{permission}:
+    get:
+      tags: [Permissions]
+      summary: Show permission
+      parameters:
+        - $ref: "#/components/parameters/PermissionId"
+      responses:
+        "200": { description: Permission retrieved }
+    put:
+      tags: [Permissions]
+      summary: Update permission
+      parameters:
+        - $ref: "#/components/parameters/PermissionId"
+      responses:
+        "200": { description: Permission updated }
+    delete:
+      tags: [Permissions]
+      summary: Delete permission
+      parameters:
+        - $ref: "#/components/parameters/PermissionId"
+      responses:
+        "200": { description: Permission deleted }
+  /activity-logs:
+    get:
+      tags: [ActivityLogs]
+      summary: List activity logs
+      responses:
+        "200": { description: Activity logs retrieved }
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: List current user's notifications
+      responses:
+        "200": { description: Notifications retrieved }
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Current user's unread notification count
+      responses:
+        "200": { description: Unread notification count retrieved }
+  /notifications/{notification}/read:
+    patch:
+      tags: [Notifications]
+      summary: Mark one notification as read
+      parameters:
+        - $ref: "#/components/parameters/NotificationId"
+      responses:
+        "200": { description: Notification marked as read }
+  /notifications/read-all:
+    patch:
+      tags: [Notifications]
+      summary: Mark all current user's notifications as read
+      responses:
+        "200": { description: All notifications marked as read }
+  /files/images:
+    post:
+      tags: [Files]
+      summary: Upload an image
       requestBody:
+        required: true
         content:
           multipart/form-data:
             schema:
               type: object
-              required: [file]
+              required: [image]
               properties:
-                file: { type: string, format: binary }
-                disk: { type: string, enum: [public, s3] }
+                image:
+                  type: string
+                  format: binary
+                directory:
+                  type: string
       responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/menus:
-    get:
-      tags: [Menus]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
+        "201": { description: Image uploaded }
+  /files/documents:
     post:
-      tags: [Menus]
+      tags: [Files]
+      summary: Upload a document
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [document]
+              properties:
+                document:
+                  type: string
+                  format: binary
+                directory:
+                  type: string
       responses:
-        "201": { $ref: "#/components/responses/Success" }
-  /admin/settings:
-    get:
-      tags: [Settings]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-    put:
-      tags: [Settings]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /admin/contact-messages:
-    get:
-      tags: [Contact Messages]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-  /admin/activity-logs:
-    get:
-      tags: [Activity Logs]
-      responses:
-        "200": { $ref: "#/components/responses/Paginated" }
-  /admin/notifications:
-    get:
-      tags: [Notifications]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /settings:
-    get:
-      security: []
-      tags: [Public]
-      responses:
-        "200": { $ref: "#/components/responses/Success" }
-  /contact-messages:
-    post:
-      security: []
-      tags: [Public]
-      responses:
-        "201": { $ref: "#/components/responses/Success" }
+        "201": { description: Document uploaded }
 components:
   securitySchemes:
-    sanctum:
+    bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: Sanctum
+  parameters:
+    UserId:
+      name: user
+      in: path
+      required: true
+      schema: { type: integer }
+    RoleId:
+      name: role
+      in: path
+      required: true
+      schema: { type: integer }
+    PermissionId:
+      name: permission
+      in: path
+      required: true
+      schema: { type: integer }
+    NotificationId:
+      name: notification
+      in: path
+      required: true
+      schema: { type: string, format: uuid }
   schemas:
-    PostInput:
+    StoreUserRequest:
       type: object
-      required: [title, body]
+      required: [name, email, phone, password, password_confirmation, role_id, status]
       properties:
-        title: { type: string }
-        slug: { type: string }
-        body: { type: string }
-        featured_image: { type: string, format: binary }
-        status: { type: string, enum: [draft, published] }
-        category_ids: { type: array, items: { type: integer } }
-        tag_ids: { type: array, items: { type: integer } }
-    Envelope:
-      type: object
-      required: [success, message]
-      properties:
-        success: { type: boolean }
-        message: { type: string }
-        data: {}
-  responses:
-    Success:
-      description: Successful response
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Envelope" }
-    Paginated:
-      description: Paginated successful response
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Envelope" }
-    ValidationError:
-      description: Validation failed
-      content:
-        application/json:
-          schema: { $ref: "#/components/schemas/Envelope" }
+        name: { type: string, maxLength: 255 }
+        email: { type: string, format: email, maxLength: 255 }
+        phone: { type: string, minLength: 11, maxLength: 20 }
+        password: { type: string, minLength: 6, maxLength: 15 }
+        password_confirmation: { type: string }
+        role_id: { type: integer }
+        status: { type: string, enum: [active, inactive] }
+    UpdateUserRequest:
+      allOf:
+        - $ref: "#/components/schemas/StoreUserRequest"
+        - type: object
+          properties:
+            password:
+              type: string
+              nullable: true
+              minLength: 6
+              maxLength: 15

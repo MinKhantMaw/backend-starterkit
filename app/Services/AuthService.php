@@ -11,6 +11,8 @@ use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
+    public function __construct(private readonly ActivityLogService $activityLogs) {}
+
     public function login(array $credentials): array
     {
         $user = User::where('email', $credentials['email'])->first();
@@ -27,7 +29,8 @@ class AuthService
             ]);
         }
 
-        $token = $user->createToken('admin-api-token')->plainTextToken;
+        $token = $user->createToken('enterprise-api-token')->plainTextToken;
+        $this->activityLogs->recordLogin($user);
 
         return [$user->load('roles.permissions'), $token];
     }
@@ -39,6 +42,13 @@ class AuthService
         ])->save();
 
         $user->tokens()->delete();
+    }
+
+    public function refreshToken(User $user): string
+    {
+        $user->currentAccessToken()?->delete();
+
+        return $user->createToken('enterprise-api-token')->plainTextToken;
     }
 
     public function assertCurrentPassword(User $user, string $currentPassword): void

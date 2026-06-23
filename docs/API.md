@@ -1,125 +1,60 @@
-# Enterprise CMS API Guide
+# Enterprise Starter Kit API Guide
 
-## Requirements
-
-- PHP 8.4 with `bcmath`, `gd`, `intl`, `mbstring`, `pdo_mysql`, `redis`, and `zip`
-- MySQL 8+
-- Redis 7+
-- Composer 2
-
-For S3 media storage, install the Laravel adapter:
-
-```bash
-composer require league/flysystem-aws-s3-v3
-```
-
-For the required Pest runner:
-
-```bash
-composer require --dev pestphp/pest:^4.0 pestphp/pest-plugin-laravel:^4.0
-```
-
-## Local Setup
-
-```bash
-composer install
-cp .env.example .env
-php artisan key:generate
-php artisan storage:link
-php artisan migrate --seed
-php artisan queue:work
-php artisan serve
-```
-
-Use Redis in production:
-
-```env
-CACHE_STORE=redis
-QUEUE_CONNECTION=redis
-SESSION_DRIVER=redis
-REDIS_HOST=redis
-```
-
-Use local public media with `FILESYSTEM_DISK=public`, or configure the AWS
-variables and set `FILESYSTEM_DISK=s3`.
+Base URL: `/api/v1`
 
 ## Authentication
 
-Base admin URL: `/api/v1/admin`
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `POST` | `/auth/login` | Issue a Sanctum token |
+| `POST` | `/auth/logout` | Revoke the current token |
+| `POST` | `/auth/forgot-password` | Send a password reset link |
+| `POST` | `/auth/reset-password` | Reset password |
+| `POST` | `/auth/change-password` | Change password |
+| `GET` | `/auth/me` | Current authenticated user |
 
-| Method | Endpoint | Purpose |
-|---|---|---|
-| POST | `/login` | Create Sanctum token |
-| POST | `/logout` | Revoke current token |
-| POST | `/forgot-password` | Email reset link |
-| POST | `/reset-password` | Reset password |
-| GET | `/profile` | Current user |
-| PUT | `/profile` | Update profile |
-| POST | `/change-password` | Change and revoke tokens |
+## Profile
 
-Protected endpoints require:
+| Method | Endpoint | Description |
+| --- | --- | --- |
+| `GET` | `/profile` | Show current profile |
+| `PUT` | `/profile` | Update profile |
+| `POST` | `/profile/change-password` | Change password |
+| `POST` | `/profile/avatar` | Upload avatar |
 
-```http
-Authorization: Bearer {token}
-Accept: application/json
-```
+## Administration
 
-## Modules
+| Endpoint | Purpose |
+| --- | --- |
+| `/users` | User CRUD, role assignment, activate/deactivate |
+| `/roles` | Role CRUD |
+| `/roles/{role}/permissions` | Assign permissions to a role |
+| `/permissions` | Permission CRUD |
+| `/activity-logs` | Login/create/update/delete audit trail |
+| `/notifications` | List current user's database notifications |
+| `/notifications/unread-count` | Current user's unread notification count |
+| `/files/images` | Upload a validated image |
+| `/files/documents` | Upload a validated document |
 
-All CRUD resources use `GET`, `POST`, `GET /{id}`, `PUT|PATCH /{id}`, and
-`DELETE /{id}` where applicable.
+## Permission Pattern
 
-| Prefix | Module |
-|---|---|
-| `/users` | Users, status, roles, direct permissions |
-| `/roles`, `/permissions` | Dynamic access control |
-| `/pages` | Pages, publish state, SEO |
-| `/posts` | Posts, images, categories, tags, SEO |
-| `/categories` | Hierarchical categories |
-| `/tags` | Tags |
-| `/media` | Local/S3 uploads and metadata |
-| `/menus` | Nested ordered navigation |
-| `/settings` | Typed site configuration |
-| `/contact-messages` | Inbox and read state |
-| `/activity-logs` | Actor-based audit history |
-| `/notifications` | Database notification inbox |
-| `/dashboard/overview` | Counts and recent activity |
+- `users.view`, `users.create`, `users.edit`, `users.delete`
+- `roles.view`, `roles.create`, `roles.edit`, `roles.delete`
+- `permissions.view`, `permissions.create`, `permissions.edit`, `permissions.delete`
+- `activityLogs.view`
+- `files.upload`
 
-Public endpoints:
+## Validation Contract
 
-- `GET /api/v1/settings`
-- `POST /api/v1/contact-messages`
-
-## Response Contract
+Backend Form Requests are the source of truth. User create/update requests require `name`, `email`, `phone`, `password` confirmation where applicable, `role_id`, and `status`. Role permission assignment accepts permission IDs. Validation failures return:
 
 ```json
 {
-  "success": true,
-  "message": "Posts retrieved.",
-  "data": {
-    "items": [],
-    "meta": {
-      "current_page": 1,
-      "last_page": 1,
-      "per_page": 15,
-      "total": 0
-    }
+  "success": false,
+  "message": "Validation failed",
+  "data": null,
+  "errors": {
+    "email": ["The email has already been taken."]
   }
 }
 ```
-
-Validation, authentication, authorization, and not-found errors use the same
-envelope with an appropriate `401`, `403`, `404`, or `422` status.
-
-## Operations
-
-Production deployment should run:
-
-```bash
-php artisan migrate --force
-php artisan optimize
-php artisan queue:restart
-```
-
-Run a dedicated queue worker for email notifications and the scheduler for
-maintenance tasks. The provided Compose stack includes both.

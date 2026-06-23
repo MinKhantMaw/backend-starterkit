@@ -9,13 +9,13 @@ class AssignUserRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('user.update');
+        return $this->user()->can('users.edit');
     }
 
     public function rules(): array
     {
         return [
-            'role' => ['required', 'string', Rule::exists('roles', 'name')->where('guard_name', 'web')],
+            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
         ];
     }
 }

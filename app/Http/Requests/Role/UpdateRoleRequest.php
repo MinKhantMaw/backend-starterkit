@@ -9,7 +9,7 @@ class UpdateRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->hasRole('Super Admin');
+        return $this->user()->can('roles.edit');
     }
 
     public function rules(): array
@@ -17,9 +17,9 @@ class UpdateRoleRequest extends FormRequest
         $role = $this->route('role');
 
         return [
-            'name' => ['sometimes', 'required', 'string', 'max:255', Rule::unique('roles', 'name')->where('guard_name', 'web')->ignore($role->id)],
-            'permissions' => ['sometimes', 'array'],
-            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'web')],
+            'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->where('guard_name', 'web')->ignore($role->id)],
+            'permissions' => ['required', 'array'],
+            'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
         ];
     }
 }

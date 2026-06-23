@@ -9,14 +9,14 @@ class SyncRolePermissionsRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->hasRole('Super Admin');
+        return $this->user()->can('roles.edit');
     }
 
     public function rules(): array
     {
         return [
             'permissions' => ['required', 'array'],
-            'permissions.*' => ['string', Rule::exists('permissions', 'name')->where('guard_name', 'web')],
+            'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
         ];
     }
 }

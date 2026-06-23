@@ -2,22 +2,15 @@
 
 namespace App\Providers;
 
-use App\Contracts\Repositories\CmsRepositoryInterface;
-use App\Models\Category;
-use App\Models\ContactMessage;
-use App\Models\Content;
-use App\Models\Media;
-use App\Models\Menu;
-use App\Models\MenuItem;
-use App\Models\Page;
-use App\Models\Post;
-use App\Models\Setting;
-use App\Models\Tag;
 use App\Models\User;
 use App\Observers\AuditableObserver;
-use App\Repositories\Eloquent\EloquentCmsRepository;
+use App\Policies\PermissionPolicy;
+use App\Policies\RolePolicy;
+use App\Policies\UserPolicy;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -26,7 +19,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->bind(CmsRepositoryInterface::class, EloquentCmsRepository::class);
+        //
     }
 
     /**
@@ -34,12 +27,15 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        foreach ([User::class, Content::class, Page::class, Post::class, Category::class, Tag::class,
-            Media::class, Menu::class, MenuItem::class, Setting::class, ContactMessage::class] as $model) {
+        foreach ([User::class, Role::class, Permission::class] as $model) {
             $model::observe(AuditableObserver::class);
         }
 
-        Gate::before(function ($user) {
+        Gate::policy(Role::class, RolePolicy::class);
+        Gate::policy(Permission::class, PermissionPolicy::class);
+        Gate::policy(User::class, UserPolicy::class);
+
+        Gate::before(function (User $user) {
             return $user->hasRole('Super Admin') ? true : null;
         });
     }

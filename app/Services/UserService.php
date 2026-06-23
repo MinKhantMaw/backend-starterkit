@@ -3,58 +3,45 @@
 namespace App\Services;
 
 use App\Models\User;
+use App\Repositories\UserRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Arr;
 use Illuminate\Validation\ValidationException;
 
 class UserService
 {
+    public function __construct(private readonly UserRepository $users) {}
+
     public function paginate(array $filters): LengthAwarePaginator
     {
-        return User::query()
-            ->with('roles.permissions')
-            ->search($filters['search'] ?? null)
-            ->when(isset($filters['status']), fn ($query) => $query->where('is_active', $this->statusToBoolean($filters['status'])))
-            ->when($filters['role'] ?? null, fn ($query, $role) => $query->role($role))
-            ->latest()
-            ->paginate($filters['per_page'] ?? 15)
-            ->withQueryString();
+        return $this->users->paginateWithFilters($filters);
     }
 
     public function create(array $data): User
     {
-        $role = Arr::pull($data, 'role');
-        $roles = Arr::pull($data, 'roles');
+        $roleId = $data['role_id'];
+        unset($data['role_id']);
+
         $this->normalizeActiveStatus($data);
 
-        $user = User::create($data);
-
-        if (! empty($roles)) {
-            $user->syncRoles(Arr::wrap($roles));
-        } elseif ($role) {
-            $user->assignRole($role);
-        }
+        /** @var User $user */
+        $user = $this->users->create($data);
+        $user->syncRoles([$roleId]);
 
         return $user->load('roles.permissions');
     }
 
     public function update(User $user, array $data): User
     {
-        $role = Arr::pull($data, 'role');
-        $roles = Arr::pull($data, 'roles');
+        $roleId = $data['role_id'];
+        unset($data['role_id']);
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
         }
 
         $this->normalizeActiveStatus($data);
-        $user->update($data);
-
-        if (! empty($roles)) {
-            $user->syncRoles(Arr::wrap($roles));
-        } elseif ($role) {
-            $user->syncRoles([$role]);
-        }
+        $this->users->update($user, $data);
+        $user->syncRoles([$roleId]);
 
         return $user->load('roles.permissions');
     }
@@ -70,7 +57,7 @@ class UserService
     public function delete(User $user): void
     {
         $this->preventSuperAdminMutation($user, 'Super Admin users cannot be deleted.');
-        $user->delete();
+        $this->users->delete($user);
     }
 
     public function updateStatus(User $user, bool $isActive): User
@@ -84,7 +71,7 @@ class UserService
         return $user->load('roles.permissions');
     }
 
-    public function assignRole(User $user, string $role): User
+    public function assignRole(User $user, int|string $role): User
     {
         $user->syncRoles([$role]);
 

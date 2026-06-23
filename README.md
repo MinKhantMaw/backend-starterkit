@@ -1,48 +1,53 @@
-# Enterprise CMS Backend API
+# Laravel 12 Enterprise Backend Starter Kit
 
-Production-oriented Laravel 12 API for an enterprise content management system.
+A reusable backend foundation for ERP, CRM, estate management, inventory management, HR management, and accounting systems.
+
+This is not a CMS. It intentionally excludes settings, posts, pages, categories, tags, and media library domain modules.
 
 ## Stack
 
-- PHP 8.4 (Docker runtime)
-- Laravel 12 and Sanctum
-- MySQL 8.4 and Redis 7
-- Spatie Laravel Permission
-- Pest 4
-- OpenAPI 3.1
+- Laravel 12
+- PHP 8.4
+- MySQL
+- Redis
+- Laravel Sanctum
+- Spatie Permission
+- Database notifications
 
-## Start With Docker
+## Modules
 
-```bash
-cp .env.example .env
-docker compose build
-docker compose up -d
-docker compose exec app php artisan key:generate
-docker compose exec app php artisan storage:link
-docker compose exec app php artisan migrate --seed
-```
+- `app/Modules/Auth`
+- `app/Modules/User`
+- `app/Modules/Role`
+- `app/Modules/Permission`
+- `app/Modules/Profile`
+- `app/Modules/ActivityLog`
+- `app/Modules/Notification`
+- `app/Modules/File`
 
-API: `http://localhost:8000/api/v1`
+## Core API
 
-Default credentials are controlled by `SUPER_ADMIN_EMAIL` and
-`SUPER_ADMIN_PASSWORD`. Change them before running the production seeder.
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/forgot-password`
+- `POST /api/v1/auth/reset-password`
+- `POST /api/v1/auth/change-password`
+- `GET /api/v1/auth/me`
+- `GET|PUT /api/v1/profile`
+- `POST /api/v1/profile/change-password`
+- `POST /api/v1/profile/avatar`
+- `apiResource /api/v1/users`
+- `PATCH /api/v1/users/{user}/assign-role`
+- `PATCH /api/v1/users/{user}/status`
+- `apiResource /api/v1/roles`
+- `PATCH /api/v1/roles/{role}/permissions`
+- `apiResource /api/v1/permissions`
+- `GET /api/v1/activity-logs`
+- `GET /api/v1/notifications`
+- `GET /api/v1/notifications/unread-count`
+- `PATCH /api/v1/notifications/{notification}/read`
+- `PATCH /api/v1/notifications/read-all`
+- `POST /api/v1/files/images`
+- `POST /api/v1/files/documents`
 
-## Documentation
-
-- [Architecture](docs/ARCHITECTURE.md)
-- [Database schema](docs/DATABASE.md)
-- [API and environment guide](docs/API.md)
-- [OpenAPI specification](docs/openapi.yaml)
-
-## Quality Checks
-
-```bash
-composer require --dev pestphp/pest:^4.0 pestphp/pest-plugin-laravel:^4.0
-./vendor/bin/pest
-./vendor/bin/pint --test
-php artisan route:list --path=api
-```
-
-The current lockfile retains the repository's original PHPUnit installation
-because the development environment could not reach Packagist. Pest runs the
-committed tests unchanged after the command above is run in the PHP 8.4 image.
+OpenAPI YAML is served from `GET /api/openapi`.

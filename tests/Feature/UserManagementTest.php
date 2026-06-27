@@ -41,7 +41,7 @@ class UserManagementTest extends TestCase
                 'phone' => '09123456789',
                 'password' => 'Secret123',
                 'password_confirmation' => 'Secret123',
-                'role_id' => Role::where('name', 'Manager')->value('id'),
+                'role_ids' => [Role::where('name', 'Editor')->value('id')],
                 'status' => 'active',
             ])
             ->assertCreated()

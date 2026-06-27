@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\User;
 
+use App\Enums\PermissionEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +10,7 @@ class UpdateUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('users.edit');
+        return $this->user()->can(PermissionEnum::USER_UPDATE->value);
     }
 
     public function rules(): array
@@ -18,10 +19,10 @@ class UpdateUserRequest extends FormRequest
 
         return [
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')->ignore($user)],
-            'phone' => ['required', 'string', 'min:11', 'max:20', Rule::unique('users', 'phone')->ignore($user)],
-            'password' => ['nullable', 'string', 'min:6', 'max:15', 'confirmed'],
-            'role_id' => ['required', 'integer', Rule::exists('roles', 'id')],
+            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user)],
+            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'role_ids' => ['required', 'array', 'min:1'],
+            'role_ids.*' => ['integer', Rule::exists('roles', 'id')],
             'status' => ['required', Rule::in(['active', 'inactive'])],
         ];
     }

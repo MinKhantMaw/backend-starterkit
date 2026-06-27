@@ -10,6 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Validation\ValidationException;
 use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
@@ -70,5 +71,27 @@ class User extends Authenticatable
     public function getStatusAttribute(): string
     {
         return $this->is_active ? 'active' : 'inactive';
+    }
+
+    public function givePermissionTo(...$permissions): static
+    {
+        $this->rejectDirectPermissionAssignment();
+    }
+
+    public function syncPermissions(...$permissions): static
+    {
+        $this->rejectDirectPermissionAssignment();
+    }
+
+    public function revokePermissionTo($permission): static
+    {
+        $this->rejectDirectPermissionAssignment();
+    }
+
+    private function rejectDirectPermissionAssignment(): never
+    {
+        throw ValidationException::withMessages([
+            'permissions' => ['Users cannot receive direct permissions. Assign permissions to roles instead.'],
+        ]);
     }
 }

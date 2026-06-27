@@ -7,9 +7,11 @@ use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
+use App\Models\User;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class AuthController extends BaseController
 {
@@ -17,9 +19,23 @@ class AuthController extends BaseController
 
     public function login(LoginRequest $request): JsonResponse
     {
-        [$user, $token] = $this->authService->login($request->validated());
+        $user = User::where('email', $request->validated('email'))->first();
+
+        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
+            return $this->error('Invalid email or password.', null, 401);
+        }
+
+        if ($user->status !== 'active') {
+            return $this->error('Your account is inactive. Please contact administrator.', null, 403);
+        }
+
+        $user->tokens()->delete();
+
+        $token = $user->createToken('admin-token')->plainTextToken;
+        $user->load('roles.permissions');
 
         return $this->success('Login successful.', [
+            'token' => $token,
             'token_type' => 'Bearer',
             'access_token' => $token,
             'user' => new UserResource($user),

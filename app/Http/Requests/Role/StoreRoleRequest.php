@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Role;
 
+use App\Enums\PermissionEnum;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -9,7 +10,7 @@ class StoreRoleRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('roles.create');
+        return $this->user()->can(PermissionEnum::ROLE_CREATE->value);
     }
 
     public function rules(): array
@@ -17,7 +18,7 @@ class StoreRoleRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255', Rule::unique('roles', 'name')->where('guard_name', 'web')],
             'permissions' => ['required', 'array'],
-            'permissions.*' => ['integer', Rule::exists('permissions', 'id')],
+            'permissions.*' => ['string', Rule::in(PermissionEnum::values())],
         ];
     }
 }

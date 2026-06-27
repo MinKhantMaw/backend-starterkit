@@ -18,22 +18,22 @@ class UserService
 
     public function create(array $data): User
     {
-        $roleId = $data['role_id'];
-        unset($data['role_id']);
+        $roleIds = $data['role_ids'];
+        unset($data['role_ids']);
 
         $this->normalizeActiveStatus($data);
 
         /** @var User $user */
         $user = $this->users->create($data);
-        $user->syncRoles([$roleId]);
+        $user->syncRoles($roleIds);
 
         return $user->load('roles.permissions');
     }
 
     public function update(User $user, array $data): User
     {
-        $roleId = $data['role_id'];
-        unset($data['role_id']);
+        $roleIds = $data['role_ids'];
+        unset($data['role_ids']);
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
@@ -41,7 +41,7 @@ class UserService
 
         $this->normalizeActiveStatus($data);
         $this->users->update($user, $data);
-        $user->syncRoles([$roleId]);
+        $user->syncRoles($roleIds);
 
         return $user->load('roles.permissions');
     }
@@ -71,18 +71,11 @@ class UserService
         return $user->load('roles.permissions');
     }
 
-    public function assignRole(User $user, int|string $role): User
+    public function assignRoles(User $user, array $roles): User
     {
-        $user->syncRoles([$role]);
+        $user->syncRoles($roles);
 
         return $user->load('roles.permissions');
-    }
-
-    public function syncPermissions(User $user, array $permissions): User
-    {
-        $user->syncPermissions($permissions);
-
-        return $user->load('roles.permissions', 'permissions');
     }
 
     private function preventSuperAdminMutation(User $user, string $message): void

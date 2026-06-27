@@ -6,7 +6,6 @@ use App\Helpers\ApiResponse;
 use App\Http\Controllers\BaseController;
 use App\Http\Requests\User\AssignUserRoleRequest;
 use App\Http\Requests\User\StoreUserRequest;
-use App\Http\Requests\User\SyncUserPermissionsRequest;
 use App\Http\Requests\User\UpdateUserRequest;
 use App\Http\Requests\User\UpdateUserStatusRequest;
 use App\Http\Resources\UserResource;
@@ -61,15 +60,8 @@ class UserController extends BaseController
 
     public function assignRole(AssignUserRoleRequest $request, User $user): JsonResponse
     {
-        return $this->success('Role assigned to user.', new UserResource(
-            $this->userService->assignRole($user, $request->validated('role_id'))
-        ));
-    }
-
-    public function permissions(SyncUserPermissionsRequest $request, User $user): JsonResponse
-    {
-        return $this->success('Permissions assigned to user.', new UserResource(
-            $this->userService->syncPermissions($user, $request->validated('permissions'))
+        return $this->success('Roles assigned to user.', new UserResource(
+            $this->userService->assignRoles($user, $request->validated('role_ids'))
         ));
     }
 }

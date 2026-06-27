@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PermissionEnum;
 use App\Models\User;
 use Spatie\Permission\Models\Permission;
 
@@ -9,26 +10,26 @@ class PermissionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->can('permissions.view');
+        return $user->can(PermissionEnum::PERMISSION_VIEW->value);
     }
 
     public function view(User $user, Permission $permission): bool
     {
-        return $user->can('permissions.view');
+        return $user->can(PermissionEnum::PERMISSION_VIEW->value);
     }
 
     public function create(User $user): bool
     {
-        return $user->can('permissions.create');
+        return false;
     }
 
     public function update(User $user, Permission $permission): bool
     {
-        return $user->can('permissions.edit');
+        return false;
     }
 
     public function delete(User $user, Permission $permission): bool
     {
-        return $user->can('permissions.delete') && ! in_array($permission->name, config('starter-kit.core_permissions'), true);
+        return false;
     }
 }

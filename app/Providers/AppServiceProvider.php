@@ -35,7 +35,7 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Permission::class, PermissionPolicy::class);
         Gate::policy(User::class, UserPolicy::class);
 
-        Gate::before(function (User $user) {
+        Gate::before(function (User $user, string $ability) {
             return $user->hasRole('Super Admin') ? true : null;
         });
     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PermissionEnum;
 use App\Modules\ActivityLog\Http\Controllers\ActivityLogController;
 use App\Modules\Auth\Http\Controllers\AuthController;
 use App\Modules\File\Http\Controllers\FileUploadController;
@@ -35,31 +36,26 @@ Route::prefix('v1')->group(function () {
         Route::patch('notifications/{notification}/read', [NotificationController::class, 'markAsRead']);
         Route::patch('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
 
-        Route::post('files/images', [FileUploadController::class, 'image'])->middleware('permission:files.upload');
-        Route::post('files/documents', [FileUploadController::class, 'document'])->middleware('permission:files.upload');
+        Route::post('files/images', [FileUploadController::class, 'image'])->middleware('permission:'.PermissionEnum::FILE_UPLOAD->value);
+        Route::post('files/documents', [FileUploadController::class, 'document'])->middleware('permission:'.PermissionEnum::FILE_UPLOAD->value);
 
-        Route::get('users', [UserController::class, 'index'])->middleware('permission:users.view');
-        Route::post('users', [UserController::class, 'store'])->middleware('permission:users.create');
-        Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:users.view');
-        Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:users.edit');
-        Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:users.delete');
-        Route::patch('users/{user}/status', [UserController::class, 'status'])->middleware('permission:users.edit');
-        Route::patch('users/{user}/assign-role', [UserController::class, 'assignRole'])->middleware('permission:users.edit');
-        Route::patch('users/{user}/permissions', [UserController::class, 'permissions'])->middleware('permission:users.edit');
+        Route::get('users', [UserController::class, 'index'])->middleware('permission:'.PermissionEnum::USER_VIEW->value);
+        Route::post('users', [UserController::class, 'store'])->middleware('permission:'.PermissionEnum::USER_CREATE->value);
+        Route::get('users/{user}', [UserController::class, 'show'])->middleware('permission:'.PermissionEnum::USER_VIEW->value);
+        Route::put('users/{user}', [UserController::class, 'update'])->middleware('permission:'.PermissionEnum::USER_UPDATE->value);
+        Route::delete('users/{user}', [UserController::class, 'destroy'])->middleware('permission:'.PermissionEnum::USER_DELETE->value);
+        Route::patch('users/{user}/status', [UserController::class, 'status'])->middleware('permission:'.PermissionEnum::USER_UPDATE->value);
+        Route::patch('users/{user}/assign-role', [UserController::class, 'assignRole'])->middleware('permission:'.PermissionEnum::USER_UPDATE->value);
 
-        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:roles.view');
-        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:roles.create');
-        Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:roles.view');
-        Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:roles.edit');
-        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:roles.delete');
-        Route::patch('roles/{role}/permissions', [RoleController::class, 'permissions'])->middleware('permission:roles.edit');
+        Route::get('roles', [RoleController::class, 'index'])->middleware('permission:'.PermissionEnum::ROLE_VIEW->value);
+        Route::post('roles', [RoleController::class, 'store'])->middleware('permission:'.PermissionEnum::ROLE_CREATE->value);
+        Route::get('roles/{role}', [RoleController::class, 'show'])->middleware('permission:'.PermissionEnum::ROLE_VIEW->value);
+        Route::put('roles/{role}', [RoleController::class, 'update'])->middleware('permission:'.PermissionEnum::ROLE_UPDATE->value);
+        Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('permission:'.PermissionEnum::ROLE_DELETE->value);
+        Route::patch('roles/{role}/permissions', [RoleController::class, 'permissions'])->middleware('permission:'.PermissionEnum::ROLE_UPDATE->value);
 
-        Route::get('permissions', [PermissionController::class, 'index'])->middleware('permission:permissions.view');
-        Route::post('permissions', [PermissionController::class, 'store'])->middleware('permission:permissions.create');
-        Route::get('permissions/{permission}', [PermissionController::class, 'show'])->middleware('permission:permissions.view');
-        Route::put('permissions/{permission}', [PermissionController::class, 'update'])->middleware('permission:permissions.edit');
-        Route::delete('permissions/{permission}', [PermissionController::class, 'destroy'])->middleware('permission:permissions.delete');
+        Route::get('permissions', [PermissionController::class, 'index'])->middleware('permission:'.PermissionEnum::PERMISSION_VIEW->value);
 
-        Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:activityLogs.view');
+        Route::get('activity-logs', [ActivityLogController::class, 'index'])->middleware('permission:'.PermissionEnum::ACTIVITY_LOG_VIEW->value);
     });
 });

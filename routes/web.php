@@ -3,5 +3,5 @@
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return "Api Server is Running";
+    return 'Api Server is Running';
 });

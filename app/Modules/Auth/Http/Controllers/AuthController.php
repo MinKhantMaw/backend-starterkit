@@ -8,14 +8,22 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Modules\SecuritySetting\Services\SecuritySettingService;
 use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends BaseController
 {
-    public function __construct(private readonly AuthService $authService) {}
+    private const TWO_FACTOR_CACHE_PREFIX = 'admin-login-2fa:';
+
+    public function __construct(
+        private readonly AuthService $authService,
+        private readonly SecuritySettingService $securitySettings,
+    ) {}
 
     public function login(LoginRequest $request): JsonResponse
     {
@@ -29,6 +37,60 @@ class AuthController extends BaseController
             return $this->error('Your account is inactive. Please contact administrator.', null, 403);
         }
 
+        if ($this->securitySettings->isAdminTwoFactorEnabled()) {
+            $temporaryToken = Str::random(80);
+
+            Cache::put(
+                $this->twoFactorCacheKey($temporaryToken),
+                $user->id,
+                now()->addMinutes(5),
+            );
+
+            return $this->success('Two-factor authentication required.', [
+                'requires_2fa' => true,
+                'temporary_token' => $temporaryToken,
+                'user' => [
+                    'email' => $user->email,
+                ],
+            ]);
+        }
+
+        return $this->loginResponse($user);
+    }
+
+    public function twoFactorChallenge(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'temporary_token' => ['required', 'string'],
+            'code' => ['required', 'digits:6'],
+        ]);
+
+        $cacheKey = $this->twoFactorCacheKey($data['temporary_token']);
+        $userId = Cache::get($cacheKey);
+
+        if (! $userId) {
+            return $this->error('Invalid or expired temporary token.', null, 401);
+        }
+
+        if (! $this->securitySettings->verifyCode($data['code'])) {
+            return $this->error('Invalid two-factor authentication code.', null, 422);
+        }
+
+        $user = User::find($userId);
+
+        if (! $user || $user->status !== 'active') {
+            Cache::forget($cacheKey);
+
+            return $this->error('Invalid or expired temporary token.', null, 401);
+        }
+
+        Cache::forget($cacheKey);
+
+        return $this->loginResponse($user);
+    }
+
+    private function loginResponse(User $user): JsonResponse
+    {
         $user->tokens()->delete();
 
         $token = $user->createToken('admin-token')->plainTextToken;
@@ -36,10 +98,16 @@ class AuthController extends BaseController
 
         return $this->success('Login successful.', [
             'token' => $token,
+            'requires_2fa' => false,
             'token_type' => 'Bearer',
             'access_token' => $token,
             'user' => new UserResource($user),
         ]);
+    }
+
+    private function twoFactorCacheKey(string $temporaryToken): string
+    {
+        return self::TWO_FACTOR_CACHE_PREFIX.hash('sha256', $temporaryToken);
     }
 
     public function refresh(Request $request): JsonResponse

@@ -31,6 +31,7 @@ class RoleSeeder extends Seeder
                 PermissionEnum::ROLE_CREATE,
                 PermissionEnum::ROLE_UPDATE,
                 PermissionEnum::PERMISSION_VIEW,
+                PermissionEnum::SECURITY_SETTING_VIEW,
                 PermissionEnum::PROFILE_VIEW,
                 PermissionEnum::PROFILE_UPDATE,
                 PermissionEnum::AUDIT_LOG_VIEW,

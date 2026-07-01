@@ -18,6 +18,9 @@ enum PermissionEnum: string
 
     case PERMISSION_VIEW = 'permission.view';
 
+    case SECURITY_SETTING_VIEW = 'security-setting.view';
+    case SECURITY_SETTING_UPDATE = 'security-setting.update';
+
     case PROFILE_VIEW = 'profile.view';
     case PROFILE_UPDATE = 'profile.update';
 

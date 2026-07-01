@@ -41,7 +41,7 @@ class ProfileController extends BaseController
 
     public function uploadAvatar(UploadAvatarRequest $request): JsonResponse
     {
-        return $this->success('Avatar uploaded.', new UserResource(
+        return $this->success('Avatar uploaded successfully.', new UserResource(
             $this->profile->uploadAvatar($request->user(), $request->file('avatar'))
         ));
     }

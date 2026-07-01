@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources;
 
+use App\Modules\SecuritySetting\Services\SecuritySettingService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -20,7 +21,8 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'is_active' => $this->is_active,
             'status' => $this->status,
-            'roles' => $this->getRoleNames()->values(),
+            'two_factor_global_enabled' => app(SecuritySettingService::class)->isAdminTwoFactorEnabled(),
+            'roles' => $this->roles->pluck('name')->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

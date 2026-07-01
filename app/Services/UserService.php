@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\ValidationException;
+use Spatie\Permission\Models\Role;
 
 class UserService
 {
@@ -18,22 +19,22 @@ class UserService
 
     public function create(array $data): User
     {
-        $roleIds = $data['role_ids'];
-        unset($data['role_ids']);
+        $roleNames = $this->resolveRoleNames($this->roleIdsFromPayload($data));
+        unset($data['role_id'], $data['role_ids']);
 
         $this->normalizeActiveStatus($data);
 
         /** @var User $user */
         $user = $this->users->create($data);
-        $user->syncRoles($roleIds);
+        $user->syncRoles($roleNames);
 
         return $user->load('roles.permissions');
     }
 
     public function update(User $user, array $data): User
     {
-        $roleIds = $data['role_ids'];
-        unset($data['role_ids']);
+        $roleNames = $this->resolveRoleNames($this->roleIdsFromPayload($data));
+        unset($data['role_id'], $data['role_ids']);
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
@@ -41,7 +42,7 @@ class UserService
 
         $this->normalizeActiveStatus($data);
         $this->users->update($user, $data);
-        $user->syncRoles($roleIds);
+        $user->syncRoles($roleNames);
 
         return $user->load('roles.permissions');
     }
@@ -71,11 +72,45 @@ class UserService
         return $user->load('roles.permissions');
     }
 
-    public function assignRoles(User $user, array $roles): User
+    public function assignRoles(User $user, array $data): User
     {
-        $user->syncRoles($roles);
+        $user->syncRoles($this->resolveRoleNames($this->roleIdsFromPayload($data)));
 
         return $user->load('roles.permissions');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function roleIdsFromPayload(array $data): array
+    {
+        $roleIds = $data['role_ids'] ?? [];
+
+        if (empty($roleIds) && isset($data['role_id'])) {
+            $roleIds = [$data['role_id']];
+        }
+
+        return array_values(array_unique(array_map('intval', $roleIds)));
+    }
+
+    /**
+     * @param  array<int, int>  $roleIds
+     * @return array<int, string>
+     */
+    private function resolveRoleNames(array $roleIds): array
+    {
+        $roles = Role::query()
+            ->whereIn('id', $roleIds)
+            ->where('guard_name', 'web')
+            ->pluck('name', 'id');
+
+        if ($roles->count() !== count($roleIds)) {
+            throw ValidationException::withMessages([
+                'role_ids' => ['One or more selected roles are invalid.'],
+            ]);
+        }
+
+        return $roles->values()->all();
     }
 
     private function preventSuperAdminMutation(User $user, string $message): void

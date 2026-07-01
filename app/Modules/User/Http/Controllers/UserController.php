@@ -61,7 +61,7 @@ class UserController extends BaseController
     public function assignRole(AssignUserRoleRequest $request, User $user): JsonResponse
     {
         return $this->success('Roles assigned to user.', new UserResource(
-            $this->userService->assignRoles($user, $request->validated('role_ids'))
+            $this->userService->assignRoles($user, $request->validated())
         ));
     }
 }

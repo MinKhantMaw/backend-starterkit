@@ -99,6 +99,66 @@ class UserManagementTest extends TestCase
         $this->assertTrue($user->fresh()->hasRole('Viewer'));
     }
 
+    public function test_a_super_admin_can_assign_a_single_role_id(): void
+    {
+        $admin = User::where('email', env('SUPER_ADMIN_EMAIL', 'admin@example.com'))->firstOrFail();
+        $user = User::factory()->create();
+        $managerRole = Role::firstOrCreate([
+            'name' => 'Manager',
+            'guard_name' => 'web',
+        ]);
+
+        $this->actingAs($admin, 'sanctum')
+            ->patchJson("/api/v1/users/{$user->id}/assign-role", [
+                'role_id' => $managerRole->id,
+            ])
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.role_id', $managerRole->id)
+            ->assertJsonPath('data.role_ids.0', $managerRole->id)
+            ->assertJsonPath('data.roles.0', 'Manager');
+
+        $this->assertTrue($user->fresh()->hasRole('Manager'));
+    }
+
+    public function test_a_super_admin_can_filter_users_by_role_id(): void
+    {
+        $admin = User::where('email', env('SUPER_ADMIN_EMAIL', 'admin@example.com'))->firstOrFail();
+        $viewerRole = Role::where('name', 'Viewer')->firstOrFail();
+        $editorRole = Role::where('name', 'Editor')->firstOrFail();
+        $viewer = User::factory()->create(['email' => 'viewer-filter@example.com']);
+        $editor = User::factory()->create(['email' => 'editor-filter@example.com']);
+        $viewer->syncRoles(['Viewer']);
+        $editor->syncRoles(['Editor']);
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/users?role_id={$viewerRole->id}")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.items.0.email', 'viewer-filter@example.com')
+            ->assertJsonMissing(['email' => 'editor-filter@example.com'])
+            ->assertJsonPath('data.items.0.role_ids.0', $viewerRole->id)
+            ->assertJsonPath('data.items.0.roles.0', 'Viewer');
+
+        $this->assertTrue($viewer->fresh()->hasRole('Viewer'));
+        $this->assertTrue($editor->fresh()->hasRole('Editor'));
+        $this->assertNotSame($viewerRole->id, $editorRole->id);
+    }
+
+    public function test_a_super_admin_can_filter_users_by_legacy_numeric_role_parameter(): void
+    {
+        $admin = User::where('email', env('SUPER_ADMIN_EMAIL', 'admin@example.com'))->firstOrFail();
+        $superAdminRole = Role::where('name', 'Super Admin')->firstOrFail();
+
+        $this->actingAs($admin, 'sanctum')
+            ->getJson("/api/v1/users?role={$superAdminRole->id}")
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.items.0.email', $admin->email)
+            ->assertJsonPath('data.items.0.role_ids.0', $superAdminRole->id)
+            ->assertJsonPath('data.items.0.roles.0', 'Super Admin');
+    }
+
     public function test_a_super_admin_can_deactivate_a_user(): void
     {
         $admin = User::where('email', env('SUPER_ADMIN_EMAIL', 'admin@example.com'))->firstOrFail();

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\ActivityEvent;
 use App\Models\User;
 use App\Repositories\UserRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -10,7 +11,11 @@ use Spatie\Permission\Models\Role;
 
 class UserService
 {
-    public function __construct(private readonly UserRepository $users) {}
+    public function __construct(
+        private readonly UserRepository $users,
+        private readonly PasswordSecurityService $passwordSecurity,
+        private readonly ActivityLogService $activityLogs,
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -27,6 +32,7 @@ class UserService
         /** @var User $user */
         $user = $this->users->create($data);
         $user->syncRoles($roleNames);
+        $this->passwordSecurity->remember($user);
 
         return $user->load('roles.permissions');
     }
@@ -38,11 +44,23 @@ class UserService
 
         if (blank($data['password'] ?? null)) {
             unset($data['password']);
+        } elseif (isset($data['password'])) {
+            $this->passwordSecurity->assertNotRecentlyUsed($user, $data['password']);
         }
 
+        $wasInactive = ! $user->is_active;
         $this->normalizeActiveStatus($data);
         $this->users->update($user, $data);
+        $user = $user->fresh();
+        $this->resetLoginLockWhenReactivated($user, $wasInactive);
+
+        if (isset($data['password'])) {
+            $this->passwordSecurity->remember($user);
+            $this->activityLogs->recordPasswordChanged($user);
+        }
+
         $user->syncRoles($roleNames);
+        $this->activityLogs->record(ActivityEvent::Updated->value, $user, [], ['roles' => $roleNames]);
 
         return $user->load('roles.permissions');
     }
@@ -67,16 +85,37 @@ class UserService
             $this->preventSuperAdminMutation($user, 'Super Admin users cannot be deactivated.');
         }
 
+        $wasInactive = ! $user->is_active;
+
         $user->update(['is_active' => $isActive]);
+        $user = $user->fresh();
+        $this->resetLoginLockWhenReactivated($user, $wasInactive);
 
         return $user->load('roles.permissions');
     }
 
     public function assignRoles(User $user, array $data): User
     {
-        $user->syncRoles($this->resolveRoleNames($this->roleIdsFromPayload($data)));
+        $roleNames = $this->resolveRoleNames($this->roleIdsFromPayload($data));
+        $user->syncRoles($roleNames);
+        $this->activityLogs->record(ActivityEvent::Updated->value, $user, [], ['roles' => $roleNames]);
 
         return $user->load('roles.permissions');
+    }
+
+    private function resetLoginLockWhenReactivated(User $user, bool $wasInactive): void
+    {
+        if (! $wasInactive || ! $user->is_active) {
+            return;
+        }
+
+        $user->forceFill([
+            'failed_login_attempts' => 0,
+            'last_failed_login_at' => null,
+            'locked_at' => null,
+        ])->save();
+
+        $this->activityLogs->recordAccountUnlocked($user->fresh());
     }
 
     /**

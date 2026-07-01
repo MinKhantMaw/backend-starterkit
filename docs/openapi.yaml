@@ -270,6 +270,29 @@ paths:
           in: query
           schema:
             type: integer
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: sort_direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: perPage
+          in: query
+          schema:
+            type: integer
         - name: per_page
           in: query
           schema:
@@ -359,6 +382,29 @@ paths:
           in: query
           schema:
             type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: sort_direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: perPage
+          in: query
+          schema:
+            type: integer
         - name: per_page
           in: query
           schema:
@@ -433,6 +479,29 @@ paths:
           in: query
           schema:
             type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: sort_direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: perPage
+          in: query
+          schema:
+            type: integer
         - name: per_page
           in: query
           schema:
@@ -513,6 +582,33 @@ paths:
           in: query
           schema:
             type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: sort_by
+          in: query
+          schema:
+            type: string
+        - name: sort_direction
+          in: query
+          schema:
+            type: string
+            enum: [asc, desc]
+        - name: date_from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: date_to
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: perPage
+          in: query
+          schema:
+            type: integer
         - name: per_page
           in: query
           schema:

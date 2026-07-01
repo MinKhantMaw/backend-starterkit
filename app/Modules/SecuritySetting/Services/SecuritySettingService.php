@@ -3,6 +3,7 @@
 namespace App\Modules\SecuritySetting\Services;
 
 use App\Models\User;
+use App\Services\ActivityLogService;
 use App\Services\SettingService;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
 use Illuminate\Support\Facades\Crypt;
@@ -17,19 +18,33 @@ class SecuritySettingService
 
     private const SECRET_KEY = 'admin_2fa_secret';
 
+    private const DEFAULTS = [
+        'max_login_attempts' => 5,
+        'lock_account_enabled' => true,
+        'login_rate_limit_enabled' => true,
+        'remember_me_enabled' => true,
+        'password_history_count' => 5,
+        'password_expiry_days' => 90,
+        'force_password_change_enabled' => false,
+        self::ENABLED_KEY => false,
+    ];
+
     private readonly Google2FA $google2fa;
 
     public function __construct(
         private readonly SettingService $settings,
+        private readonly ActivityLogService $activityLogs,
     ) {
         $this->google2fa = new Google2FA(new Bacon(new SvgImageBackEnd));
     }
 
     public function settings(): array
     {
-        return [
-            'admin_2fa_enabled' => $this->isAdminTwoFactorEnabled(),
-        ];
+        return collect(self::DEFAULTS)
+            ->mapWithKeys(fn (mixed $default, string $key) => [$key => is_bool($default)
+                ? $this->settings->getBoolean($key, $default)
+                : (int) $this->settings->get($key, $default)])
+            ->all();
     }
 
     public function isAdminTwoFactorEnabled(): bool
@@ -37,21 +52,21 @@ class SecuritySettingService
         return $this->settings->getBoolean(self::ENABLED_KEY);
     }
 
-    public function update(array $data): array
+    public function update(User $user, array $data): array
     {
-        if ($data['admin_2fa_enabled'] === false) {
-            $this->settings->set(self::ENABLED_KEY, false, 'boolean');
-
-            return $this->settings();
+        if (($data[self::ENABLED_KEY] ?? false) === true && ! $this->isAdminTwoFactorEnabled()) {
+            throw ValidationException::withMessages([
+                self::ENABLED_KEY => ['Use the 2FA setup and confirm endpoints to enable global admin 2FA.'],
+            ]);
         }
 
-        if ($this->isAdminTwoFactorEnabled()) {
-            return $this->settings();
+        foreach ($data as $key => $value) {
+            $this->settings->set($key, $value, is_bool(self::DEFAULTS[$key] ?? null) ? 'boolean' : 'integer');
         }
 
-        throw ValidationException::withMessages([
-            'admin_2fa_enabled' => ['Use the 2FA setup and confirm endpoints to enable global admin 2FA.'],
-        ]);
+        $this->activityLogs->recordSecuritySettingUpdated($user, $this->settings());
+
+        return $this->settings();
     }
 
     public function setup(): array
@@ -69,8 +84,13 @@ class SecuritySettingService
         ];
     }
 
-    public function confirm(string $code): array
+    public function confirm(User|string $user, ?string $code = null): array
     {
+        if (is_string($user)) {
+            $code = $user;
+            $user = auth()->user();
+        }
+
         if (! $this->verifyCode($code)) {
             throw ValidationException::withMessages([
                 'code' => ['The provided two-factor authentication code is invalid.'],
@@ -78,6 +98,10 @@ class SecuritySettingService
         }
 
         $this->settings->set(self::ENABLED_KEY, true, 'boolean');
+
+        if ($user instanceof User) {
+            $this->activityLogs->recordSecuritySettingUpdated($user, $this->settings());
+        }
 
         return $this->settings();
     }
@@ -91,6 +115,7 @@ class SecuritySettingService
         }
 
         $this->settings->set(self::ENABLED_KEY, false, 'boolean');
+        $this->activityLogs->recordSecuritySettingUpdated($user, $this->settings());
 
         return $this->settings();
     }

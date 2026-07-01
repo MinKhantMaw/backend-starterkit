@@ -6,6 +6,7 @@ use App\Http\Controllers\BaseController;
 use App\Http\Requests\Auth\ForgotPasswordRequest;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\ResetPasswordRequest;
+use App\Http\Requests\Auth\TwoFactorChallengeRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
 use App\Modules\SecuritySetting\Services\SecuritySettingService;
@@ -13,7 +14,6 @@ use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 class AuthController extends BaseController
@@ -27,15 +27,10 @@ class AuthController extends BaseController
 
     public function login(LoginRequest $request): JsonResponse
     {
-        $user = User::where('email', $request->validated('email'))->first();
-
-        if (! $user || ! Hash::check($request->validated('password'), $user->password)) {
-            return $this->error('Invalid email or password.', null, 401);
-        }
-
-        if ($user->status !== 'active') {
-            return $this->error('Your account is inactive. Please contact administrator.', null, 403);
-        }
+        $user = $this->authService->validateLoginCredentials(
+            $request->validated('email'),
+            $request->validated('password'),
+        );
 
         if ($this->securitySettings->isAdminTwoFactorEnabled()) {
             $temporaryToken = Str::random(80);
@@ -58,12 +53,9 @@ class AuthController extends BaseController
         return $this->loginResponse($user);
     }
 
-    public function twoFactorChallenge(Request $request): JsonResponse
+    public function twoFactorChallenge(TwoFactorChallengeRequest $request): JsonResponse
     {
-        $data = $request->validate([
-            'temporary_token' => ['required', 'string'],
-            'code' => ['required', 'digits:6'],
-        ]);
+        $data = $request->validated();
 
         $cacheKey = $this->twoFactorCacheKey($data['temporary_token']);
         $userId = Cache::get($cacheKey);
@@ -91,10 +83,7 @@ class AuthController extends BaseController
 
     private function loginResponse(User $user): JsonResponse
     {
-        $user->tokens()->delete();
-
-        $token = $user->createToken('admin-token')->plainTextToken;
-        $user->load('roles.permissions');
+        [$user, $token] = $this->authService->issueToken($user);
 
         return $this->success('Login successful.', [
             'token' => $token,
@@ -120,9 +109,16 @@ class AuthController extends BaseController
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $this->authService->logout($request->user());
 
         return $this->success('Logout successful.');
+    }
+
+    public function logoutAll(Request $request): JsonResponse
+    {
+        $this->authService->logoutAll($request->user());
+
+        return $this->success('All devices logged out successfully.');
     }
 
     public function me(Request $request): JsonResponse

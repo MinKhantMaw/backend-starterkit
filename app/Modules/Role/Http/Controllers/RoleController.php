@@ -19,7 +19,16 @@ class RoleController extends BaseController
 
     public function index(Request $request): JsonResponse
     {
-        return ApiResponse::paginated('Roles retrieved.', $this->roleService->paginate($request->only(['search', 'per_page'])), RoleResource::class);
+        return ApiResponse::paginated('Roles retrieved.', $this->roleService->paginate($request->only([
+            'search',
+            'sort_by',
+            'sort_direction',
+            'perPage',
+            'per_page',
+            'page',
+            'date_from',
+            'date_to',
+        ])), RoleResource::class);
     }
 
     public function store(StoreRoleRequest $request): JsonResponse

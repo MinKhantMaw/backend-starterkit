@@ -14,6 +14,10 @@ use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Middleware\PermissionMiddleware;
 use Spatie\Permission\Middleware\RoleMiddleware;
 use Spatie\Permission\Middleware\RoleOrPermissionMiddleware;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -42,9 +46,24 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? ApiResponse::error('Forbidden.', status: 403)
                 : null;
         });
+        $exceptions->render(function (AccessDeniedHttpException $exception, Request $request) {
+            return $request->expectsJson()
+                ? ApiResponse::error('Forbidden.', status: 403)
+                : null;
+        });
         $exceptions->render(function (ModelNotFoundException $exception, Request $request) {
             return $request->expectsJson()
                 ? ApiResponse::error('Resource not found.', status: 404)
+                : null;
+        });
+        $exceptions->render(function (NotFoundHttpException $exception, Request $request) {
+            return $request->expectsJson()
+                ? ApiResponse::error('Resource not found.', status: 404)
+                : null;
+        });
+        $exceptions->render(function (MethodNotAllowedHttpException $exception, Request $request) {
+            return $request->expectsJson()
+                ? ApiResponse::error('Method not allowed.', status: 405)
                 : null;
         });
         $exceptions->render(function (ValidationException $exception, Request $request) {
@@ -53,5 +72,12 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             return null;
+        });
+        $exceptions->render(function (Throwable $exception, Request $request) {
+            if (! $request->expectsJson() || $exception instanceof HttpExceptionInterface) {
+                return null;
+            }
+
+            return ApiResponse::error('Server error.', status: 500);
         });
     })->create();

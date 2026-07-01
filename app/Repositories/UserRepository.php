@@ -3,6 +3,7 @@
 namespace App\Repositories;
 
 use App\Models\User;
+use App\Support\QueryFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Spatie\Permission\Models\Role;
@@ -16,15 +17,20 @@ class UserRepository extends BaseRepository
 
     public function paginateWithFilters(array $filters): LengthAwarePaginator
     {
+        $queryFilters = QueryFilters::from($filters);
         $roleId = $this->roleIdFromFilters($filters);
 
-        return $this->query()
+        $query = $this->query()
             ->with('roles.permissions')
-            ->search($filters['search'] ?? null)
+            ->search($queryFilters->string('search'))
             ->when(isset($filters['status']), fn ($query) => $query->where('is_active', $this->statusToBoolean($filters['status'])))
-            ->when($roleId !== null, fn (Builder $query) => $this->filterByRoleId($query, $roleId))
-            ->latest()
-            ->paginate(min((int) ($filters['per_page'] ?? 15), 100))
+            ->when($roleId !== null, fn (Builder $query) => $this->filterByRoleId($query, $roleId));
+
+        $queryFilters->applyDateRange($query);
+        $queryFilters->applySort($query, ['id', 'name', 'email', 'created_at', 'updated_at'], 'created_at', 'desc');
+
+        return $query
+            ->paginate($queryFilters->perPage())
             ->withQueryString();
     }
 

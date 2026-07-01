@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Auth;
 
+use App\Services\PasswordSecurityService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ChangePasswordRequest extends FormRequest
@@ -15,7 +16,7 @@ class ChangePasswordRequest extends FormRequest
     {
         return [
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:6', 'max:15', 'confirmed'],
+            'password' => ['required', 'string', app(PasswordSecurityService::class)->rule(), 'confirmed'],
         ];
     }
 }

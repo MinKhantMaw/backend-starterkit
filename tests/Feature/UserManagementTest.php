@@ -40,8 +40,8 @@ class UserManagementTest extends TestCase
                 'name' => 'Operations Manager',
                 'email' => 'ops@example.com',
                 'phone' => '09123456789',
-                'password' => 'Secret123',
-                'password_confirmation' => 'Secret123',
+                'password' => 'Secret123!',
+                'password_confirmation' => 'Secret123!',
                 'role_id' => $editorRole->id,
                 'status' => 'active',
             ])
@@ -57,7 +57,7 @@ class UserManagementTest extends TestCase
     public function test_a_super_admin_can_update_a_user_role_with_role_id(): void
     {
         $admin = User::where('email', env('SUPER_ADMIN_EMAIL', 'admin@example.com'))->firstOrFail();
-        $user = User::factory()->create(['password' => 'Secret123']);
+        $user = User::factory()->create(['password' => 'Secret123!']);
         $user->syncRoles(['Viewer']);
         $editorRole = Role::where('name', 'Editor')->firstOrFail();
 

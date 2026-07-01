@@ -43,6 +43,7 @@ class DashboardOverviewTest extends TestCase
                     'total_roles',
                     'total_permissions',
                     'recent_users',
+                    'recent_activity_logs',
                 ],
             ]);
     }

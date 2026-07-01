@@ -2,6 +2,7 @@
 
 namespace App\Repositories;
 
+use App\Support\QueryFilters;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Spatie\Permission\Models\Role;
 
@@ -14,11 +15,15 @@ class RoleRepository extends BaseRepository
 
     public function paginateWithFilters(array $filters): LengthAwarePaginator
     {
-        return $this->query()
-            ->with('permissions')
-            ->when($filters['search'] ?? null, fn ($query, $search) => $query->where('name', 'like', "%{$search}%"))
-            ->latest()
-            ->paginate(min((int) ($filters['per_page'] ?? 15), 100))
+        $queryFilters = QueryFilters::from($filters);
+        $query = $this->query()->with('permissions');
+
+        $queryFilters->applySearch($query, ['name', 'guard_name']);
+        $queryFilters->applyDateRange($query);
+        $queryFilters->applySort($query, ['id', 'name', 'guard_name', 'created_at', 'updated_at'], 'created_at', 'desc');
+
+        return $query
+            ->paginate($queryFilters->perPage())
             ->withQueryString();
     }
 }

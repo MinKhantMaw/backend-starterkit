@@ -105,14 +105,17 @@ class PermissionArchitectureTest extends TestCase
 
         $this->actingAs($superAdmin, 'sanctum')
             ->postJson('/api/v1/permissions', ['name' => 'report.view'])
-            ->assertNotFound();
+            ->assertStatus(405)
+            ->assertJsonPath('success', false);
 
         $this->actingAs($superAdmin, 'sanctum')
             ->putJson("/api/v1/permissions/{$permission->id}", ['name' => 'report.view'])
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertJsonPath('success', false);
 
         $this->actingAs($superAdmin, 'sanctum')
             ->deleteJson("/api/v1/permissions/{$permission->id}")
-            ->assertNotFound();
+            ->assertNotFound()
+            ->assertJsonPath('success', false);
     }
 }

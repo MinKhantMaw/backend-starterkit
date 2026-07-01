@@ -3,6 +3,7 @@
 namespace App\Http\Requests\User;
 
 use App\Enums\PermissionEnum;
+use App\Services\PasswordSecurityService;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -18,7 +19,7 @@ class StoreUserRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')],
-            'password' => ['required', 'string', 'min:6', 'confirmed'],
+            'password' => ['required', 'string', app(PasswordSecurityService::class)->rule(), 'confirmed'],
             'role_id' => ['nullable', 'integer', Rule::exists('roles', 'id')->where('guard_name', 'web'), 'required_without:role_ids'],
             'role_ids' => ['nullable', 'array', 'min:1', 'required_without:role_id'],
             'role_ids.*' => ['integer', Rule::exists('roles', 'id')->where('guard_name', 'web')],

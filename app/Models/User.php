@@ -7,6 +7,7 @@ use App\Traits\HasAvatar;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -31,6 +32,9 @@ class User extends Authenticatable
         'password',
         'avatar_path',
         'is_active',
+        'failed_login_attempts',
+        'last_failed_login_at',
+        'locked_at',
     ];
 
     /**
@@ -54,7 +58,24 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
             'password' => 'hashed',
+            'last_failed_login_at' => 'datetime',
+            'locked_at' => 'datetime',
         ];
+    }
+
+    public function passwordHistories(): HasMany
+    {
+        return $this->hasMany(PasswordHistory::class);
+    }
+
+    public function loginHistories(): HasMany
+    {
+        return $this->hasMany(LoginHistory::class);
+    }
+
+    public function sessions(): HasMany
+    {
+        return $this->hasMany(UserSession::class);
     }
 
     public function scopeSearch(Builder $query, ?string $search): Builder
